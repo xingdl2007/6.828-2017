@@ -82,6 +82,7 @@ trap_init(void)
 	extern void v_general();
 	extern void v_page();
 	extern void v_align();
+	extern void v_syscall();
 
 	// gate, istrap, sel, off, dpl
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, v_divide, 0);
@@ -101,6 +102,9 @@ trap_init(void)
 	SETGATE(idt[T_GPFLT], 0, GD_KT, v_general, 0);
 	SETGATE(idt[T_PGFLT], 0, GD_KT, v_page, 0);
 	SETGATE(idt[T_ALIGN], 0, GD_KT, v_align, 0);
+
+	// syscall
+	SETGATE(idt[T_SYSCALL], 0, GD_KT, v_syscall, 3);
 
         // Per-CPU setup
 	trap_init_percpu();
@@ -184,7 +188,7 @@ trap_dispatch(struct Trapframe *tf)
 	case T_DIVIDE: break;
 	case T_DEBUG: break;
 	case T_NMI: break;
-	case T_BRKPT: monitor(tf); break;
+	case T_BRKPT: return monitor(tf);
 	case T_OFLOW: break;
 	case T_BOUND: break;
 	case T_ILLOP: break;
@@ -194,12 +198,19 @@ trap_dispatch(struct Trapframe *tf)
 	case T_SEGNP: break;
 	case T_STACK: break;
 	case T_GPFLT: break;
-	case T_PGFLT:  page_fault_handler(tf); break;
+	case T_PGFLT: return page_fault_handler(tf);
 	case T_FPERR: break;
 	case T_ALIGN: break;
 	case T_MCHK: break;
 	case T_SIMDERR: break;
-	case T_SYSCALL: break;
+	case T_SYSCALL:
+		tf->tf_regs.reg_eax = syscall(tf->tf_regs.reg_eax,
+					      tf->tf_regs.reg_edx,
+					      tf->tf_regs.reg_ecx,
+					      tf->tf_regs.reg_ebx,
+					      tf->tf_regs.reg_edi,
+					      tf->tf_regs.reg_esi);
+		return;
 	default:
 		panic("trap_idspatch() unknown trap %d\n", tf->tf_trapno);
 	}
