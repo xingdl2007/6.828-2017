@@ -180,6 +180,29 @@ trap_dispatch(struct Trapframe *tf)
 {
 	// Handle processor exceptions.
 	// LAB 3: Your code here.
+	switch(tf->tf_trapno) {
+	case T_DIVIDE: break;
+	case T_DEBUG: break;
+	case T_NMI: break;
+	case T_BRKPT: break;
+	case T_OFLOW: break;
+	case T_BOUND: break;
+	case T_ILLOP: break;
+	case T_DEVICE: break;
+	case T_DBLFLT: break;
+	case T_TSS: break;
+	case T_SEGNP: break;
+	case T_STACK: break;
+	case T_GPFLT: break;
+	case T_PGFLT:  page_fault_handler(tf); break;
+	case T_FPERR: break;
+	case T_ALIGN: break;
+	case T_MCHK: break;
+	case T_SIMDERR: break;
+	case T_SYSCALL: break;
+	default:
+		panic("trap_idspatch() unknown trap %d\n", tf->tf_trapno);
+	}
 
 	// Unexpected trap: The user process or the kernel has a bug.
 	print_trapframe(tf);
