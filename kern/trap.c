@@ -87,7 +87,7 @@ trap_init(void)
 	SETGATE(idt[T_DIVIDE], 0, GD_KT, v_divide, 0);
 	SETGATE(idt[T_DEBUG], 0, GD_KT, v_debug, 0);
 	SETGATE(idt[T_NMI], 0, GD_KT, v_nmi, 0);
-	SETGATE(idt[T_BRKPT], 0, GD_KT, v_breakpoint, 0);
+	SETGATE(idt[T_BRKPT], 0, GD_KT, v_breakpoint, 3);
 	SETGATE(idt[T_OFLOW], 0, GD_KT, v_overflow, 0);
 	SETGATE(idt[T_BOUND], 0, GD_KT, v_bound, 0);
 	SETGATE(idt[T_ILLOP], 0, GD_KT, v_illop, 0);
@@ -184,7 +184,7 @@ trap_dispatch(struct Trapframe *tf)
 	case T_DIVIDE: break;
 	case T_DEBUG: break;
 	case T_NMI: break;
-	case T_BRKPT: break;
+	case T_BRKPT: monitor(tf); break;
 	case T_OFLOW: break;
 	case T_BOUND: break;
 	case T_ILLOP: break;
