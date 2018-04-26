@@ -65,8 +65,44 @@ trap_init(void)
 	extern struct Segdesc gdt[];
 
 	// LAB 3: Your code here.
+	extern void v_divide();
+	extern void v_debug();
+	extern void v_nmi();
+	extern void v_breakpoint();
+	extern void v_overflow();
+	extern void v_bound();
+	extern void v_illop();
+	extern void v_coprocessor();
+	extern void v_float();
+	extern void v_machine();
+	extern void v_simd();
+	extern void v_double();
+	extern void v_tss();
+	extern void v_segment();
+	extern void v_general();
+	extern void v_page();
+	extern void v_align();
 
-	// Per-CPU setup 
+	// gate, istrap, sel, off, dpl
+	SETGATE(idt[T_DIVIDE], 0, GD_KT, v_divide, 0);
+	SETGATE(idt[T_DEBUG], 0, GD_KT, v_debug, 0);
+	SETGATE(idt[T_NMI], 0, GD_KT, v_nmi, 0);
+	SETGATE(idt[T_BRKPT], 0, GD_KT, v_breakpoint, 0);
+	SETGATE(idt[T_OFLOW], 0, GD_KT, v_overflow, 0);
+	SETGATE(idt[T_BOUND], 0, GD_KT, v_bound, 0);
+	SETGATE(idt[T_ILLOP], 0, GD_KT, v_illop, 0);
+	SETGATE(idt[T_DEVICE], 0, GD_KT, v_coprocessor, 0);
+	SETGATE(idt[T_FPERR], 0, GD_KT, v_float, 0);
+	SETGATE(idt[T_MCHK], 0, GD_KT, v_machine, 0);
+	SETGATE(idt[T_SIMDERR], 0, GD_KT, v_simd, 0);
+	SETGATE(idt[T_DBLFLT], 0, GD_KT, v_double, 0);
+	SETGATE(idt[T_TSS], 0, GD_KT, v_tss, 0);
+	SETGATE(idt[T_SEGNP], 0, GD_KT, v_segment, 0);
+	SETGATE(idt[T_GPFLT], 0, GD_KT, v_general, 0);
+	SETGATE(idt[T_PGFLT], 0, GD_KT, v_page, 0);
+	SETGATE(idt[T_ALIGN], 0, GD_KT, v_align, 0);
+
+        // Per-CPU setup
 	trap_init_percpu();
 }
 

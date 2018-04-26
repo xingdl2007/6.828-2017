@@ -46,10 +46,51 @@
 /*
  * Lab 3: Your code here for generating entry points for the different traps.
  */
+TRAPHANDLER_NOEC(v_divide, T_DIVIDE)
+TRAPHANDLER_NOEC(v_debug, T_DEBUG)
+TRAPHANDLER_NOEC(v_nmi, T_NMI)
+TRAPHANDLER_NOEC(v_breakpoint, T_BRKPT)
+TRAPHANDLER_NOEC(v_overflow, T_OFLOW)
+TRAPHANDLER_NOEC(v_bound, T_BOUND)
+TRAPHANDLER_NOEC(v_illop, T_ILLOP)
+TRAPHANDLER_NOEC(v_coprocessor, T_DEVICE)
+TRAPHANDLER_NOEC(v_float, T_FPERR)
+TRAPHANDLER_NOEC(v_machine, T_MCHK)
+TRAPHANDLER_NOEC(v_simd, T_SIMDERR)
 
-
+TRAPHANDLER(v_double, T_DBLFLT)
+TRAPHANDLER(v_tss, T_TSS)
+TRAPHANDLER(v_segment, T_SEGNP)
+TRAPHANDLER(v_general, T_GPFLT)
+TRAPHANDLER(v_page, T_PGFLT)
+TRAPHANDLER(v_align, T_ALIGN)
 
 /*
  * Lab 3: Your code here for _alltraps
  */
 
+.global _alltraps
+_alltraps:
+	# Build trap frame
+	pushl %ds
+	pushl %es
+	pushal
+
+	# Set up data segments
+	movw $(GD_KD), %ax
+	movw %ax, %ds
+	movw %ax, %es
+
+	# Call trap(tf), where tf = %esp
+	pushl %esp
+	call trap
+	addl $4, %esp
+
+	# Return falls through to trapret
+.global trapret
+trapret:
+	popal
+	popl %es
+	popl %ds
+	addl $0x8, %esp  # trapno and errcode
+	iret
