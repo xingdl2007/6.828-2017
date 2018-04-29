@@ -556,6 +556,9 @@ env_run(struct Env *e)
 	e->env_status = ENV_RUNNING;
 	e->env_runs++;
 
+	// release the big kernel lock
+	unlock_kernel();
+
 	// must be physical address
 	lcr3(PADDR(e->env_pgdir));
 	env_pop_tf(&e->env_tf);
