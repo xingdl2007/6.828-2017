@@ -320,6 +320,10 @@ page_init(void)
 	// 2)
 	size_t i;
 	for (i = 1; i < npages_basemem; i++) {
+		if(i == MPENTRY_PADDR/PGSIZE) {
+			pages[i].pp_ref = 1;
+			continue;
+		}
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
 		page_free_list = &pages[i];
@@ -609,12 +613,12 @@ mmio_map_region(physaddr_t pa, size_t size)
         uintptr_t ret = base;
 	size = ROUNDUP(size, PGSIZE);
 
-	if(size > PTSIZE) {
+	if(size > MMIOLIM - base) {
 		panic("mmio_map_region(): out of address space\n");
 	}
 	boot_map_region(kern_pgdir, base, size, pa, PTE_PCD | PTE_PWT | PTE_W);
 	base += size;
-	return KADDR(ret);
+	return (void *)ret;
 }
 
 static uintptr_t user_mem_check_addr;
