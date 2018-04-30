@@ -382,10 +382,9 @@ page_fault_handler(struct Trapframe *tf)
 		user_mem_assert(curenv, (void *)(UXSTACKTOP - PGSIZE), PGSIZE,
 				PTE_W);
 		if(tf->tf_esp >= UXSTACKTOP - PGSIZE) {
-			// recursive
-			tf->tf_esp -= 4;
+			// recursive: reserve 4 bytes, interesting!
 			utf = (struct UTrapframe*)
-				(tf->tf_esp - sizeof(struct UTrapframe));
+				(tf->tf_esp - 4 - sizeof(struct UTrapframe));
 		} else {
 			// first time
 			utf = (struct UTrapframe*)
