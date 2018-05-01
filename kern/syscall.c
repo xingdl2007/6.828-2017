@@ -208,7 +208,7 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 //	-E_INVAL if (perm & PTE_W), but srcva is read-only in srcenvid's
 //		address space.
 //	-E_NO_MEM if there's no memory to allocate any necessary page tables.
-static int
+int
 sys_page_map(envid_t srcenvid, void *srcva,
 	     envid_t dstenvid, void *dstva, int perm)
 {
@@ -242,7 +242,7 @@ sys_page_map(envid_t srcenvid, void *srcva,
 	if((page = page_lookup(srcenv->env_pgdir, srcva, &pte)) == NULL) {
 		return -E_INVAL;
 	}
-	if( (*pte & PTE_W) != (perm & PTE_W)) {
+	if((perm & PTE_W) && (*pte & PTE_W) == 0) {
 		return -E_INVAL;
 	}
 	if((ret = page_insert(dstenv->env_pgdir, page, dstva, perm)) < 0) {

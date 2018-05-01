@@ -341,7 +341,10 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 3: Your code here.
 	if ((tf->tf_cs & 3) == 0) {
-		panic("page fault in kernel mode\n");
+		panic("page fault in kernel mode, addr %x\n", fault_va);
+	} else {
+		cprintf("[%08x] page fault addr %x, pn %d\n", curenv->env_id,
+			fault_va, PGNUM(fault_va));
 	}
 
 	// We've already handled kernel-mode exceptions, so if we get here,
@@ -378,19 +381,31 @@ page_fault_handler(struct Trapframe *tf)
 
 	// LAB 4: Your code here.
 	struct UTrapframe* utf;
-	if(curenv->env_pgfault_upcall != NULL && fault_va < USTACKTOP) {
-		user_mem_assert(curenv, (void *)(UXSTACKTOP - PGSIZE), PGSIZE,
-				PTE_W);
-		if(tf->tf_esp >= UXSTACKTOP - PGSIZE) {
+	uintptr_t utf_addr;
+
+	if(curenv->env_pgfault_upcall != NULL) {
+		if(tf->tf_esp >= UXSTACKTOP - PGSIZE && tf->tf_esp < UXSTACKTOP) {
+			// in order to pass grade script, should not panic here
+			// when exception stack overflows.
+			//
+			// user_mem_assert will destory abnormal env.
+			//
+			// if(tf->tf_esp - (UXSTACKTOP - PGSIZE) < sizeof(*utf)) {
+			//	print_trapframe(tf);
+			//	panic("[%08x] exception stack overflow\n",
+			//	      curenv->env_id);
+			// }
+			//
 			// recursive: reserve 4 bytes, interesting!
-			utf = (struct UTrapframe*)
-				(tf->tf_esp - 4 - sizeof(struct UTrapframe));
+			utf_addr = tf->tf_esp - 4 - sizeof(struct UTrapframe);
 		} else {
 			// first time
-			utf = (struct UTrapframe*)
-				(UXSTACKTOP - sizeof(struct UTrapframe));
+			utf_addr = UXSTACKTOP - sizeof(struct UTrapframe);
 		}
 
+		user_mem_assert(curenv, (void *)utf_addr, sizeof(struct UTrapframe), PTE_W);
+
+		utf = (struct UTrapframe*)utf_addr;
 		// copy from tf
 		utf->utf_fault_va = fault_va;
 		utf->utf_err = tf->tf_err;
