@@ -14,7 +14,7 @@ extern void _pgfault_upcall(void);
 // map in our own private writable copy.
 //
 void
-pgfault(struct UTrapframe *utf)
+static pgfault(struct UTrapframe *utf)
 {
 	void *addr = (void *) utf->utf_fault_va;
 	uint32_t err = utf->utf_err;
@@ -155,8 +155,10 @@ fork(void)
 	}
 
 	// exception stack
-	if((r = sys_page_alloc(envid, (void*)(UXSTACKTOP-PGSIZE), PTE_P|PTE_U|PTE_W)) < 0)
+	if((r = sys_page_alloc(envid, (void*)(UXSTACKTOP-PGSIZE),
+			       PTE_P|PTE_U|PTE_W)) < 0) {
 		panic("sys_page_alloc: %e", r);
+	}
 
 	// install pgfault handler for child
 	sys_env_set_pgfault_upcall(envid, _pgfault_upcall);
