@@ -257,7 +257,7 @@ trap_dispatch(struct Trapframe *tf)
 					      tf->tf_regs.reg_esi);
 		return;
 	default:
-		panic("trap_idspatch() unknown trap %d\n", tf->tf_trapno);
+		break;
 	}
 
 	// Handle spurious interrupts
