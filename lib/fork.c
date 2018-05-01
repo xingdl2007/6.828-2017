@@ -82,19 +82,17 @@ duppage(envid_t envid, unsigned pn)
 	void *addr = (void *)(pn << PGSHIFT);
 
 	// LAB 4: Your code here.
-	if((uvpt[pn] & PTE_W) || (uvpt[pn] & PTE_COW)) {
+	if((uvpt[pn] & (PTE_W | PTE_COW)) != 0) {
 		if((r = sys_page_map(0, addr, envid, addr,
-				   PTE_P | PTE_U | PTE_COW)) < 0) {
+				     PTE_U | PTE_COW)) < 0) {
 			panic("sys_page_map: %e", r);
 		}
 		if((r = sys_page_map(0, addr, 0, addr,
-				   PTE_P | PTE_U | PTE_COW)) < 0) {
+				     PTE_U | PTE_COW)) < 0) {
 			panic("sys_page_map: %e", r);
 		}
 	} else {
-		cprintf("duppage(): read-only page, %x", addr);
-		if((r = sys_page_map(0, addr, envid, addr,
-				     PTE_P | PTE_U)) < 0) {
+		if((r = sys_page_map(0, addr, envid, addr, PTE_U)) < 0) {
 			   panic("sys_page_map: %e", r);
 		}
 	}
@@ -141,15 +139,13 @@ fork(void)
 		// is no longer valid (it refers to the parent!).
 		// Fix it and return 0.
 		thisenv = &envs[ENVX(sys_getenvid())];
-		cprintf("[%08x] return from fork, thisenv: %x\n", thisenv->env_id,
-			thisenv);
 		return 0;
 	}
 
-	// Copy page mappings
-	for(addr = 0; addr < USTACKTOP; addr += PGSIZE) {
+	// copy page mappings including normal stack
+	for(addr = UTEXT; addr < USTACKTOP; addr += PGSIZE) {
 		if((uvpd[PDX(addr)] & PTE_P) && (uvpt[PGNUM(addr)] & PTE_P)
-		   && (uvpt[PGNUM(addr)] & PTE_U)){
+		   && (uvpt[PGNUM(addr)] & PTE_U)) {
 			duppage(envid, PGNUM(addr));
 		}
 	}
