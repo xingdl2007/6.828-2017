@@ -51,12 +51,13 @@ static pgfault(struct UTrapframe *utf)
 	envid_t envid = sys_getenvid();
 
 	// temp page is necessary
-	if((r = sys_page_alloc(envid, (void *)PFTEMP, PTE_W | PTE_U)) < 0) {
+	if((r = sys_page_alloc(envid, (void *)PFTEMP,
+			       PTE_P | PTE_U | PTE_W)) < 0) {
 		panic("sys_page_alloc: %e", r);
 	}
 	memcpy((void *)PFTEMP, (void *)addr, PGSIZE);
 	if((r = sys_page_map(envid, (void *)PFTEMP, envid, addr,
-			     PTE_W | PTE_U)) < 0) {
+			     PTE_P | PTE_U | PTE_W)) < 0) {
 		panic("sys_page_map: %e", r);
 	}
 	if((r = sys_page_unmap(envid, (void *)PFTEMP)) < 0) {
@@ -84,15 +85,16 @@ duppage(envid_t envid, unsigned pn)
 	// LAB 4: Your code here.
 	if((uvpt[pn] & (PTE_W | PTE_COW)) != 0) {
 		if((r = sys_page_map(0, addr, envid, addr,
-				     PTE_U | PTE_COW)) < 0) {
+				    PTE_P | PTE_U | PTE_COW)) < 0) {
 			panic("sys_page_map: %e", r);
 		}
 		if((r = sys_page_map(0, addr, 0, addr,
-				     PTE_U | PTE_COW)) < 0) {
+				    PTE_P | PTE_U | PTE_COW)) < 0) {
 			panic("sys_page_map: %e", r);
 		}
 	} else {
-		if((r = sys_page_map(0, addr, envid, addr, PTE_U)) < 0) {
+		if((r = sys_page_map(0, addr, envid, addr,
+				     PTE_P | PTE_U)) < 0) {
 			   panic("sys_page_map: %e", r);
 		}
 	}
@@ -152,7 +154,7 @@ fork(void)
 
 	// exception stack
 	if((r = sys_page_alloc(envid, (void*)(UXSTACKTOP-PGSIZE),
-			       PTE_P|PTE_U|PTE_W)) < 0) {
+			       PTE_P | PTE_U | PTE_W)) < 0) {
 		panic("sys_page_alloc: %e", r);
 	}
 
