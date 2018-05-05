@@ -158,7 +158,6 @@ file_block_walk(struct File *f, uint32_t filebno, uint32_t **ppdiskbno, bool all
 		       return blockno;
 	       memset(diskaddr(blockno), 0, BLKSIZE);
 	       f->f_indirect = blockno;
-	       flush_block(f);
        }
        uint32_t *blk = diskaddr(f->f_indirect);
        if(ppdiskbno)
@@ -187,7 +186,6 @@ file_get_block(struct File *f, uint32_t filebno, char **blk)
 		       return r;
 	       *pdiskbno = r;
 	       memset(diskaddr(r), 0, BLKSIZE);
-	       flush_block(pdiskbno);
        }
        if(blk)
 	       *blk = diskaddr(*pdiskbno);
