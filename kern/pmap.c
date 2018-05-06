@@ -332,11 +332,10 @@ page_init(void)
 		page_free_list = &pages[i];
 	}
 	// 3)
-	for( i = IOPHYSMEM/PGSIZE; i < EXTPHYSMEM/PGSIZE; ++i) {
+	for( i = IOPHYSMEM/PGSIZE; i < PADDR(boot_alloc(0))/PGSIZE; ++i) {
 		pages[i].pp_ref = 1;
 	}
 	// 4)
-	i =  PADDR(boot_alloc(0))/PGSIZE;
 	for(; i < npages; ++i) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
