@@ -335,9 +335,6 @@ page_init(void)
 	for( i = IOPHYSMEM/PGSIZE; i < PADDR(boot_alloc(0))/PGSIZE; ++i) {
 		pages[i].pp_ref = 1;
 	}
-	for(; i < PADDR(boot_alloc(0))/PGSIZE; ++i) {
-		pages[i].pp_ref = 1;
-	}
 	// 4)
 	for(; i < npages; ++i) {
 		pages[i].pp_ref = 0;
