@@ -117,6 +117,7 @@ devfile_read(struct Fd *fd, void *buf, size_t n)
 	// system server.
 	int r;
 
+	n = MIN(n, PGSIZE);
 	fsipcbuf.read.req_fileid = fd->fd_file.id;
 	fsipcbuf.read.req_n = n;
 	if ((r = fsipc(FSREQ_READ, NULL)) < 0)
@@ -141,16 +142,16 @@ devfile_write(struct Fd *fd, const void *buf, size_t n)
 	// remember that write is always allowed to write *fewer*
 	// bytes than requested.
 	// LAB 5: Your code here
-	int r, size;
+	int r;
 
-	size = MIN(n, sizeof(fsipcbuf.write.req_buf));
+	n = MIN(n, sizeof(fsipcbuf.write.req_buf));
 	fsipcbuf.write.req_fileid = fd->fd_file.id;
-	fsipcbuf.write.req_n = size;
-	memmove(fsipcbuf.write.req_buf, buf, size);
+	fsipcbuf.write.req_n = n;
+	memmove(fsipcbuf.write.req_buf, buf, n);
 
 	if((r = fsipc(FSREQ_WRITE, NULL)) <0)
 		return r;
-	assert(r <= size);
+	assert(r <= n);
 	return r;
 }
 
