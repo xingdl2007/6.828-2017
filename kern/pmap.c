@@ -335,8 +335,10 @@ page_init(void)
 	for( i = IOPHYSMEM/PGSIZE; i < EXTPHYSMEM/PGSIZE; ++i) {
 		pages[i].pp_ref = 1;
 	}
+	for(; i < PADDR(boot_alloc(0))/PGSIZE; ++i) {
+		pages[i].pp_ref = 1;
+	}
 	// 4)
-	i =  PADDR(boot_alloc(0))/PGSIZE;
 	for(; i < npages; ++i) {
 		pages[i].pp_ref = 0;
 		pages[i].pp_link = page_free_list;
@@ -371,6 +373,10 @@ page_alloc(int alloc_flags)
 			memset(page2kva(result), 0, PGSIZE);
 		}
 	}
+	if(result != NULL) {
+		assert(result->pp_ref == 0);
+		assert(result->pp_link == NULL);
+	}
 	return result;
 }
 
@@ -385,8 +391,8 @@ page_free(struct PageInfo *pp)
 	// Hint: You may want to panic if pp->pp_ref is nonzero or
 	// pp->pp_link is not NULL.
 	if(pp->pp_ref != 0 || pp->pp_link != NULL) {
-		panic("page_free() pp_ref: %d pp_link: %p\n",
-		      pp->pp_ref, pp->pp_link);
+		panic("page_free() pp_ref: %d, pp_link: %p, addr: %x, pp: %x\n",
+		      pp->pp_ref, pp->pp_link, page2pa(pp), pp);
 	}
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
@@ -430,7 +436,7 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 {
 	// Fill this function in
 	pde_t *pde = &pgdir[PDX(va)];
-	if(!(*pde & PTE_P)) {
+	if((*pde & PTE_P) == 0) {
 		if(create) {
 			struct PageInfo *p = page_alloc(ALLOC_ZERO);
 			if(p == NULL) {
