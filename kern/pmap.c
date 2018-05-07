@@ -160,7 +160,7 @@ mem_init(void)
 	// Your code goes here:
 	n = sizeof(struct PageInfo) * npages;
 	pages = boot_alloc(n);
-	memset(pages, 0, n);
+	memset(pages, 0, ROUNDUP(n, PGSIZE));
 
 	//////////////////////////////////////////////////////////////////////
 	// Make 'envs' point to an array of size 'NENV' of 'struct Env'.
@@ -251,6 +251,17 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
+
+	// extra test
+	cprintf("page_free_list: %x, pages:  %x, sizeof(page): %d\n",
+		page_free_list, pages,
+		sizeof(struct PageInfo));
+	struct PageInfo *p = page_free_list;
+	while(p != NULL) {
+		assert(p->pp_ref == 0);
+		assert(page2pa(p) != 0);
+		p = p->pp_link;
+	}
 }
 
 // Modify mappings in kern_pgdir to support SMP
@@ -320,11 +331,13 @@ page_init(void)
 
 	// 1)
 	pages[0].pp_ref = 1;
+	pages[0].pp_link = NULL;
 	// 2)
 	size_t i;
 	for (i = 1; i < npages_basemem; i++) {
 		if(i == MPENTRY_PADDR/PGSIZE) {
 			pages[i].pp_ref = 1;
+			pages[i].pp_link == NULL;
 			continue;
 		}
 		pages[i].pp_ref = 0;
@@ -334,6 +347,7 @@ page_init(void)
 	// 3)
 	for( i = IOPHYSMEM/PGSIZE; i < PADDR(boot_alloc(0))/PGSIZE; ++i) {
 		pages[i].pp_ref = 1;
+		pages[i].pp_link = NULL;
 	}
 	// 4)
 	for(; i < npages; ++i) {
@@ -391,6 +405,9 @@ page_free(struct PageInfo *pp)
 		panic("page_free() pp_ref: %d, pp_link: %p, addr: %x, pp: %x\n",
 		      pp->pp_ref, pp->pp_link, page2pa(pp), pp);
 	}
+	if(pp == pages) {
+		panic("page_free(): Oops...");
+	}
 	pp->pp_link = page_free_list;
 	page_free_list = pp;
 }
@@ -402,6 +419,7 @@ page_free(struct PageInfo *pp)
 void
 page_decref(struct PageInfo* pp)
 {
+
 	if (--pp->pp_ref == 0)
 		page_free(pp);
 }
@@ -439,7 +457,11 @@ pgdir_walk(pde_t *pgdir, const void *va, int create)
 			if(p == NULL) {
 				return NULL;
 			}
+			if(p == pages) {
+				panic("pgdir_walk: Oops...");
+			}
 			p->pp_ref++;
+			assert(p->pp_link == NULL);
 			*pde = page2pa(p) | PTE_U | PTE_W | PTE_P;
 		} else {
 			return NULL;
@@ -503,6 +525,7 @@ page_insert(pde_t *pgdir, struct PageInfo *pp, void *va, int perm)
 {
 	// Fill this function in
 	pp->pp_ref++;
+	assert(pp->pp_link == NULL);
 	bool inv = false;
 	pte_t *pte = pgdir_walk(pgdir, va, 0);
 	if(pte == NULL) {
@@ -537,11 +560,12 @@ page_lookup(pde_t *pgdir, void *va, pte_t **pte_store)
 {
 	// Fill this function in
 	pte_t *pte = pgdir_walk(pgdir, va, 0);
-	if(pte == NULL)
+	if(pte == NULL || *pte == 0)
 		return NULL;
 	if(pte_store)
 		*pte_store = pte;
-	return pa2page(PTE_ADDR(*pte));
+	struct PageInfo *pp = pa2page(PTE_ADDR(*pte));
+	return pp;
 }
 
 //
@@ -567,6 +591,7 @@ page_remove(pde_t *pgdir, void *va)
 	struct PageInfo *p = page_lookup(pgdir, va, &pte);
 	if(p == NULL)
 		return;
+	assert(p->pp_link == NULL);
 	page_decref(p);
 	*pte = 0;
 	tlb_invalidate(pgdir, va);

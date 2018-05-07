@@ -211,9 +211,9 @@ sys_page_alloc(envid_t envid, void *va, int perm)
 	if((ret = envid2env(envid, &env, true)) < 0) {
 		return ret;
 	}
-	struct PageInfo *page = page_alloc(ALLOC_ZERO);
-	if(page_insert(env->env_pgdir, page, va, perm) < 0) {
-		page_free(page);
+	struct PageInfo *pp = page_alloc(ALLOC_ZERO);
+	if(page_insert(env->env_pgdir, pp, va, perm) < 0) {
+		page_free(pp);
 	}
 	return 0;
 }
@@ -267,14 +267,14 @@ sys_page_map(envid_t srcenvid, void *srcva,
 		return -E_INVAL;
 	}
 	pte_t *pte;
-	struct PageInfo *page;
-	if((page = page_lookup(srcenv->env_pgdir, srcva, &pte)) == NULL) {
+	struct PageInfo *pp;
+	if((pp = page_lookup(srcenv->env_pgdir, srcva, &pte)) == NULL) {
 		return -E_INVAL;
 	}
 	if((perm & PTE_W) && (*pte & PTE_W) == 0) {
 		return -E_INVAL;
 	}
-	if((ret = page_insert(dstenv->env_pgdir, page, dstva, perm)) < 0) {
+	if((ret = page_insert(dstenv->env_pgdir, pp, dstva, perm)) < 0) {
 		return ret;
 	}
 	return 0;
@@ -352,8 +352,6 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	if(t_env->env_ipc_recving == false) {
 		return -E_IPC_NOT_RECV;
 	}
-
-	t_env->env_ipc_recving = false;
 	if((uintptr_t)srcva < UTOP) {
 		if((uintptr_t)srcva % PGSIZE != 0)
 			return -E_INVAL;
@@ -364,13 +362,14 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 			return -E_INVAL;
 		}
 		pte_t *pte;
-		struct PageInfo *page;
-		if((page = page_lookup(curenv->env_pgdir, srcva, &pte))
+		struct PageInfo *pp;
+		if((pp = page_lookup(curenv->env_pgdir, srcva, &pte))
 			== NULL)
 			return -E_INVAL;
+		assert(pp->pp_link == NULL);
 		if((perm & PTE_W) && (*pte & PTE_W) == 0)
 			return -E_INVAL;
-		if((r = page_insert(t_env->env_pgdir, page,
+		if((r = page_insert(t_env->env_pgdir, pp,
 				      t_env->env_ipc_dstva,
 				      perm)) < 0)
 			return r;
@@ -378,9 +377,13 @@ sys_ipc_try_send(envid_t envid, uint32_t value, void *srcva, unsigned perm)
 	} else
 		t_env->env_ipc_perm = 0;
 
+	t_env->env_ipc_recving = false;
 	t_env->env_ipc_value = value;
 	t_env->env_ipc_from = curenv->env_id;
 	t_env->env_status = ENV_RUNNABLE;
+
+	// set return value to 0, the only way
+	t_env->env_tf.tf_regs.reg_eax = 0;
 	return 0;
 }
 
@@ -404,9 +407,6 @@ sys_ipc_recv(void *dstva)
 	curenv->env_ipc_recving = true;
 	curenv->env_ipc_dstva = dstva;
 	curenv->env_status = ENV_NOT_RUNNABLE;
-
-	// set return value to 0, the only way
-	curenv->env_tf.tf_regs.reg_eax = 0;
 	sched_yield();
 }
 

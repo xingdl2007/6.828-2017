@@ -29,7 +29,7 @@ static pgfault(struct UTrapframe *utf)
 
 	// LAB 4: Your code here.
 	if((err & FEC_WR) == 0) {
-		panic("pgfault(): not write on %x, err: %d\n", addr, err);
+		panic("pgfault(): not write on addr %x, err: %d\n", addr, err);
 	}
 	if((uvpd[PDX((uintptr_t)addr)] & PTE_P) == 0) {
 		panic("pgfault(): unmapped addr %x\n", addr);
