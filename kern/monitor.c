@@ -64,8 +64,8 @@ mon_backtrace(int argc, char **argv, struct Trapframe *tf)
 	struct Eipdebuginfo info;
 	while(ebp != 0) {
 		uint32_t *eip = (uint32_t *)ebp + 1;
-		int ret = debuginfo_eip(*eip,&info);
-		assert(ret != -1);
+		if(debuginfo_eip(*eip, &info) < 0)
+			break;
 		cprintf("ebp %x eip %x args %08x %08x %08x %08x %08x\n\t%s:%d: %.*s+%d\n",
 			ebp, *eip,                    // return address (saved eip)
 			       *((uint32_t *)ebp+2),  // 1th parameter
