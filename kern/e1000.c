@@ -1,3 +1,4 @@
+#include "inc/string.h"
 #include "kern/pmap.h"
 #include "kern/e1000.h"
 
@@ -5,14 +6,15 @@
 struct eth_frame tx_pkt_buffer[TXDESC_SIZE];
 
 __attribute__((__aligned__(PGSIZE)))
-struct e1000_tx_desc tx_desc_ring[TXDESC_SIZE] = {
-	[0] = {0, {0}, {0}},
-};
+struct e1000_tx_desc tx_desc_ring[TXDESC_SIZE];
 
-void e1000_tx_init() {
-	// Buffer addr initialization
+void
+e1000_tx_init()
+{
+	// Buffer addr initialization, set DD bit
 	for(int i = 0; i < TXDESC_SIZE; i++) {
 		tx_desc_ring[i].buffer_addr = PADDR(&tx_pkt_buffer[i]);
+		tx_desc_ring[i].upper.fields.status |= E1000_TD_STA_DD;
 	}
 
 	// Ring buffer, must be physical address
@@ -32,6 +34,38 @@ void e1000_tx_init() {
 	e1000[E1000_TIPG] = 10 | (4 << 10) | (6 << 20);
 }
 
-void e1000_rx_init() {
+/*
+  return true when transmit queue is not full, false otherwise.
+  Caller should check the return value.
+*/
+bool
+e1000_snd_pkt(void *pkt, uint32_t len)
+{
+	if(len > ETH_MAX_SIZE) {
+		panic("e1000_snd_pkt(): pkt too long %d\n", len);
+	}
+	uint32_t tail = e1000[E1000_TDT/4];
+	assert(tail < TXDESC_SIZE);
+
+	// free transimit descriptor slot
+	if(!tx_desc_ring[tail].upper.fields.status & E1000_TD_STA_DD) {
+		return false;
+	}
+	memcpy(KADDR(tx_desc_ring[tail].buffer_addr), pkt, len);
+	tx_desc_ring[tail].lower.flags.length = len;
+
+	// enable RS(report status) and set EOP (end of packet)
+	tx_desc_ring[tail].lower.flags.cmd |=
+		E1000_TD_CMD_RS | E1000_TD_CMD_EOP;
+
+	// update tail
+	tail = (tail + 1) % TXDESC_SIZE;
+	e1000[E1000_TDT/4] = tail;
+	return true;
+}
+
+void
+e1000_rx_init()
+{
 
 }
