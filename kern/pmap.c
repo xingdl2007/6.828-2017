@@ -251,17 +251,6 @@ mem_init(void)
 
 	// Some more checks, only possible after kern_pgdir is installed.
 	check_page_installed_pgdir();
-
-	// extra test
-	cprintf("page_free_list: %x, pages:  %x, sizeof(page): %d\n",
-		page_free_list, pages,
-		sizeof(struct PageInfo));
-	struct PageInfo *p = page_free_list;
-	while(p != NULL) {
-		assert(p->pp_ref == 0);
-		assert(page2pa(p) != 0);
-		p = p->pp_link;
-	}
 }
 
 // Modify mappings in kern_pgdir to support SMP
