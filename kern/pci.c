@@ -288,8 +288,11 @@ static void
 check_tx(void)
 {
 	char pkt[256];
-	for(int i = 0; i < sizeof(pkt); i++)
+	int i, ret;
+	for(i = 0; i < sizeof(pkt); i++)
 		pkt[i] = i;
-	int ret = e1000_snd_pkt(pkt, sizeof(pkt));
-	assert(ret);
+	for(i = 0; i < 100; i++) {
+		ret = e1000_snd_pkt(pkt, sizeof(pkt));
+		assert(ret);
+	}
 }

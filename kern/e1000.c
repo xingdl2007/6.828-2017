@@ -20,7 +20,7 @@ e1000_tx_init()
 	// Ring buffer, must be physical address
 	e1000[E1000_TDBAL/4] = PADDR(tx_desc_ring);
 	e1000[E1000_TDBAH/4] = 0;                     // 32bit addr
-	e1000[E1000_TDLEN/4] = TXDESC_SIZE * 128;
+	e1000[E1000_TDLEN/4] = TXDESC_SIZE * sizeof(struct e1000_tx_desc);
 
 	// Make sure head/tail is 0
 	e1000[E1000_TDH/4] = 0;
@@ -57,6 +57,8 @@ e1000_snd_pkt(void *pkt, uint32_t len)
 	// enable RS(report status) and set EOP (end of packet)
 	tx_desc_ring[tail].lower.flags.cmd |=
 		E1000_TD_CMD_RS | E1000_TD_CMD_EOP;
+	// clear DD
+	tx_desc_ring[tail].upper.fields.status = 0;
 
 	// update tail
 	tail = (tail + 1) % TXDESC_SIZE;
