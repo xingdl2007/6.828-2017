@@ -39,7 +39,7 @@ e1000_tx_init()
   Caller should check the return value.
 */
 bool
-e1000_snd_pkt(void *pkt, uint32_t len)
+e1000_snd_pkt(const char *pkt, uint32_t len)
 {
 	if(len > ETH_MAX_SIZE) {
 		panic("e1000_snd_pkt(): pkt too long %d\n", len);

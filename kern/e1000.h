@@ -82,6 +82,6 @@ struct eth_frame{
 
 void e1000_tx_init();
 void e1000_rx_init();
-bool e1000_snd_pkt(void *pkt, uint32_t len);
+bool e1000_snd_pkt(const char *pkt, uint32_t len);
 
 #endif	// JOS_KERN_E1000_H

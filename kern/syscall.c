@@ -12,6 +12,7 @@
 #include <kern/console.h>
 #include <kern/sched.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 // Print a string to the system console.
 // The string is exactly 'len' characters long.
@@ -419,6 +420,19 @@ sys_time_msec(void)
 	return time_msec();
 }
 
+// return 0 on success.
+// Return < 0 on error.  Errors are:
+//	-E_NO_MEM if e1000 transmit descriptor ring buffer is full
+static int
+sys_pkt_try_send(void *data, uint32_t len)
+{
+	user_mem_assert(curenv, data, len, PTE_U);
+	if(e1000_snd_pkt(data, len)) {
+		return 0;
+	}
+	return -E_NO_MEM;
+}
+
 // Dispatches to the correct kernel function, passing the arguments.
 int32_t
 syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, uint32_t a5)
@@ -459,6 +473,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_ipc_recv((void *)a1);
 	case SYS_time_msec:
 		return sys_time_msec();
+	case SYS_pkt_try_send:
+		return sys_pkt_try_send((char *)a1, a2);
 	default:
 		return -E_INVAL;
 	}
