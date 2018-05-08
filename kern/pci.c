@@ -257,11 +257,17 @@ e1000_attach(struct pci_func *pcif)
 {
 	pci_func_enable(pcif);
 
-	// map the first bar of e1000
+	// Map the first Bar space of e1000
 	e1000 = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
 
-	// simple test, e1000 status, should be 0x80080783
+	// Simple test, read e1000's status
 	cprintf("e1000 status: 0x%x\n", e1000[E1000_STATUS/4]);
+
+	// Transmit initialization
+	e1000_tx_init();
+
+	// Receive initialization
+	e1000_rx_init();
 	return 0;
 }
 
