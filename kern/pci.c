@@ -4,10 +4,11 @@
 #include <kern/pci.h>
 #include <kern/pcireg.h>
 #include <kern/e1000.h>
+#include <kern/pmap.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;
-static int pci_show_addrs = 0;
+static int pci_show_addrs = 1;
 
 // PCI "configuration mechanism one"
 static uint32_t pci_conf1_addr_ioport = 0x0cf8;
@@ -16,6 +17,8 @@ static uint32_t pci_conf1_data_ioport = 0x0cfc;
 // Forward declarations
 static int pci_bridge_attach(struct pci_func *pcif);
 static int e1000_attach(struct pci_func *pcif);
+
+volatile uint32_t *e1000;
 
 // PCI driver table
 struct pci_driver {
@@ -253,6 +256,12 @@ static int
 e1000_attach(struct pci_func *pcif)
 {
 	pci_func_enable(pcif);
+
+	// map the first bar of e1000
+	e1000 = mmio_map_region(pcif->reg_base[0], pcif->reg_size[0]);
+
+	// simple test, e1000 status, should be 0x80080783
+	cprintf("e1000 status: 0x%x\n", e1000[E1000_STATUS/4]);
 	return 0;
 }
 
