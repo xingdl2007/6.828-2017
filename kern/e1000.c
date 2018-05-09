@@ -1,5 +1,7 @@
+#include "inc/ns.h"
 #include "inc/string.h"
 #include "kern/pmap.h"
+#include "kern/env.h"
 #include "kern/e1000.h"
 
 // LAB 6: Your driver code here
@@ -11,6 +13,9 @@ struct e1000_tx_desc tx_desc_ring[TXDESC_SIZE];
 
 __attribute__((__aligned__(PGSIZE)))
 struct e1000_rx_desc rx_desc_ring[RXDESC_SIZE];
+
+// software head, not head used by hardware
+static uint32_t head = 0;
 
 void
 e1000_tx_init()
@@ -89,8 +94,13 @@ e1000_rx_init()
 		e1000[E1000_MTA(i)/4] = 0;
 	}
 
-	// Disable all interrutp
-	e1000[E1000_IMS/4] = 0;
+	// Enable receive timer interrupt
+	// Setting the Packet Timer to 0b disables both the Packet Timer and
+	// the Absolute Timer (described below) and causes the Receive Timer
+	// Interrupt to be generated whenever a new packet has been stored in
+	// memory
+	e1000[E1000_RDTR/4] = 0;
+	e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
 
 	// Ring buffer, must be physical address
 	e1000[E1000_RDBAL/4] = PADDR(rx_desc_ring);
@@ -106,4 +116,55 @@ e1000_rx_init()
 	// 2. 2048 buffer size, default
 	// 3. strip CRC
 	e1000[E1000_RCTL/4] = E1000_RCTL_EN | E1000_RCTL_SECRC;
+}
+
+bool
+e1000_try_recv(struct jif_pkt *pkt)
+{
+	uint32_t tail = e1000[E1000_RDT/4];
+	assert(tail < RXDESC_SIZE);
+
+	// Receive descriptor consumed, one per packet
+	if((rx_desc_ring[head].status & E1000_RD_STA_DD) &&
+	   (rx_desc_ring[head].status & E1000_RD_STA_EOP)) {
+		memcpy(pkt->jp_data,
+		       (void *)(uint32_t)rx_desc_ring[head].buffer_addr,
+			rx_desc_ring[head].length);
+		pkt->jp_len = rx_desc_ring[head].length;
+
+		// reset status
+		rx_desc_ring[head].status = 0;
+
+		// move head and tail
+		while(tail != head) {
+			rx_desc_ring[tail].status = 0;
+			tail = (tail + 1) % RXDESC_SIZE;
+		}
+		head = (head + 1) % RXDESC_SIZE;
+
+		// disable receive interrupt
+		e1000[E1000_IMS/4]  = 0;
+		return true;
+	}
+	// enable receive interrupt
+	e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
+	return false;
+}
+
+// for recving
+void net_intr()
+{
+	// find if some env is blocking
+	int i;
+	for (i = 0; i < NENV; i++) {
+		if(envs[i].env_status == ENV_NOT_RUNNABLE &&
+		   envs[i].env_pkt_recving) {
+			cprintf("Oops...\n");
+			e1000_try_recv(envs[i].env_pkt_dstva);
+			envs[i].env_pkt_recving = false;
+			envs[i].env_pkt_dstva = 0;
+			envs[i].env_tf.tf_regs.reg_eax = 0;
+			envs[i].env_status = ENV_RUNNABLE;
+		}
+	}
 }

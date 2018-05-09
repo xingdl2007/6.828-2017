@@ -67,6 +67,10 @@ struct Env {
 	uint32_t env_ipc_value;		// Data value sent to us
 	envid_t env_ipc_from;		// envid of the sender
 	int env_ipc_perm;		// Perm of page mapping received
+
+	// LAB 6 NET
+	bool env_pkt_recving;           // Env is blocked receiving pkt
+	void *env_pkt_dstva;            // VA at which to map received pkt
 };
 
 #endif // !JOS_INC_ENV_H

@@ -3,6 +3,7 @@
 
 #include "inc/types.h"
 #include "inc/memlayout.h"
+#include "inc/ns.h"
 
 #define TXDESC_SIZE  32    // tx descriptor ring size
 #define RXDESC_SIZE  128   // rx descriptor ring size
@@ -25,8 +26,11 @@ volatile uint32_t *e1000;
 
 #define E1000_CTRL      0x00000  /* Device Control - RW */
 #define E1000_STATUS    0x00008  /* Device Status - RO */
+#define E1000_ICS       0x000C8  /* Interrupt Cause Set - WO */
 #define E1000_IMS       0x000D0  /* Interrupt Mask Set - RW */
 #define E1000_IMC       0x000D8  /* Interrupt Mask Clear - WO */
+#define E1000_IMS_RXT0  0x00080  /* rx timer intr */
+#define E1000_RDTR      0x02820  /* RX Delay Timer (1) - RW */
 
 /* Receive Control Related */
 #define E1000_RCTL      0x00100  /* RX Control - RW */
@@ -64,6 +68,9 @@ volatile uint32_t *e1000;
 #define E1000_RCTL_RST   0x00000001    /* Software reset */
 #define E1000_RCTL_EN    0x00000002    /* enable */
 #define E1000_RCTL_SECRC 0x04000000    /* Strip Ethernet CRC */
+
+#define E1000_RD_STA_DD  0x1      /* Bit 0 */
+#define E1000_RD_STA_EOP 0x2      /* Bit 1 */
 
 /* Transmit Descriptor */
 struct e1000_tx_desc {
@@ -103,5 +110,7 @@ struct eth_frame{
 void e1000_tx_init();
 void e1000_rx_init();
 bool e1000_snd_pkt(const char *pkt, uint32_t len);
+bool e1000_try_recv(struct jif_pkt *pkt);
+void net_intr();
 
 #endif	// JOS_KERN_E1000_H

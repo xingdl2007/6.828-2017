@@ -1,7 +1,6 @@
 #include <inc/mmu.h>
 #include <inc/x86.h>
 #include <inc/assert.h>
-
 #include <kern/pmap.h>
 #include <kern/trap.h>
 #include <kern/console.h>
@@ -14,6 +13,7 @@
 #include <kern/cpu.h>
 #include <kern/spinlock.h>
 #include <kern/time.h>
+#include <kern/e1000.h>
 
 /* For debugging, so print_trapframe can distinguish between printing
  * a saved trapframe and printing the current trapframe and print some
@@ -118,6 +118,7 @@ trap_init(void)
 	extern void i_serial();
 	extern void i_spurious();
 	extern void i_ide();
+	extern void i_net();
 	extern void i_error();
 
 	SETGATE(idt[IRQ_OFFSET + IRQ_TIMER], 0, GD_KT, i_timer, 0);
@@ -125,6 +126,7 @@ trap_init(void)
 	SETGATE(idt[IRQ_OFFSET + IRQ_SERIAL], 0, GD_KT, i_serial, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_SPURIOUS], 0, GD_KT, i_spurious, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_IDE], 0, GD_KT, i_ide, 0);
+	SETGATE(idt[IRQ_OFFSET + IRQ_NET], 0, GD_KT, i_net, 0);
 	SETGATE(idt[IRQ_OFFSET + IRQ_ERROR], 0, GD_KT, i_error, 0);
 
         // Per-CPU setup
@@ -296,6 +298,13 @@ trap_dispatch(struct Trapframe *tf)
 
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
 		serial_intr();
+		return;
+	}
+
+	// Net interrupt
+	if(tf->tf_trapno == IRQ_OFFSET + 11) {
+		cprintf("net receive interrupt: do something!\n");
+		net_intr();
 		return;
 	}
 

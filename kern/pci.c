@@ -1,10 +1,12 @@
 #include <inc/x86.h>
 #include <inc/assert.h>
 #include <inc/string.h>
+#include <inc/trap.h>
 #include <kern/pci.h>
 #include <kern/pcireg.h>
 #include <kern/e1000.h>
 #include <kern/pmap.h>
+#include <kern/picirq.h>
 
 // Flag to do "lspci" at bootup
 static int pci_show_devs = 1;
@@ -270,6 +272,10 @@ e1000_attach(struct pci_func *pcif)
 
 	// Receive initialization
 	e1000_rx_init();
+
+	// Enable interrupt
+	assert(pcif->irq_line == IRQ_NET);
+	irq_setmask_8259A(irq_mask_8259A & ~(1 << IRQ_NET));
 	return 0;
 }
 

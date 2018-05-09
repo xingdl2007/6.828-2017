@@ -37,6 +37,7 @@
 #define IRQ_SERIAL       4
 #define IRQ_SPURIOUS     7
 #define IRQ_IDE         14
+#define IRQ_NET         11
 #define IRQ_ERROR       19
 
 #ifndef __ASSEMBLER__
