@@ -105,7 +105,7 @@ e1000_rx_init()
 	// Ring buffer, must be physical address
 	e1000[E1000_RDBAL/4] = PADDR(rx_desc_ring);
 	e1000[E1000_RDBAH/4] = 0;      // 32bit addr
-	e1000[E1000_RDLEN/4] = RXDESC_SIZE * sizeof(struct e1000_tx_desc);
+	e1000[E1000_RDLEN/4] = RXDESC_SIZE * sizeof(struct e1000_rx_desc);
 
 	// Make sure head/tail is 0
 	e1000[E1000_RDH/4] = 0;
@@ -122,6 +122,7 @@ bool
 e1000_try_recv(struct jif_pkt *pkt)
 {
 	uint32_t tail = e1000[E1000_RDT/4];
+	assert(head < RXDESC_SIZE);
 	assert(tail < RXDESC_SIZE);
 
 	// Receive descriptor consumed, one per packet

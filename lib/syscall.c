@@ -128,3 +128,9 @@ sys_pkt_try_send(const char* data, uint32_t len)
 {
 	return syscall(SYS_pkt_try_send, 0, (uint32_t)data, len, 0, 0, 0);
 }
+
+int
+sys_pkt_recv(void *dstva)
+{
+	return syscall(SYS_pkt_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
+}

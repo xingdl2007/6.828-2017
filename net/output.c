@@ -1,7 +1,5 @@
 #include "ns.h"
 
-extern union Nsipc nsipcbuf;
-
 void
 output(envid_t ns_envid)
 {
