@@ -434,7 +434,7 @@ sys_pkt_try_send(void *data, uint32_t len)
 }
 
 // destva's type of struct jif_pkt*.
-static int
+int
 sys_pkt_recv(physaddr_t dstpa)
 {
 	if((physaddr_t)dstpa < UTOP && (physaddr_t)dstpa % PGSIZE != 0)
@@ -443,12 +443,13 @@ sys_pkt_recv(physaddr_t dstpa)
 	// if e1000 has received pkts in host memory, retrive and return;
 	// else receive buffer is empty, block user env;
 	if(e1000_try_recv(dstpa)) {
-		cprintf("[%08x] sys_pkt_recv() succeed\n", curenv->env_id);
+		uint32_t *kaddr = KADDR(dstpa);
 		return 0;
 	}
+	return -1;
 
-	cprintf("[%08x] blocking on sys_pkt_recv()\n", curenv->env_id);
 	// block
+	cprintf("sleep on sys_pkt_recv()\n");
 	curenv->env_pkt_recving = true;
 	curenv->env_pkt_dstpa = dstpa;
 	curenv->env_status = ENV_NOT_RUNNABLE;

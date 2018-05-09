@@ -96,7 +96,8 @@ umain(int argc, char **argv)
 		int perm;
 
 		int32_t req = ipc_recv((int32_t *)&whom, pkt, &perm);
-		cprintf("[%08x] receive a packet...\n", thisenv->env_id);
+		cprintf("[%08x] receive a packet: len: %d\n",
+			thisenv->env_id, pkt->jp_len);
 
 		if (req < 0)
 			panic("ipc_recv: %e", req);
