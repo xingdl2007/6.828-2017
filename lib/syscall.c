@@ -130,7 +130,7 @@ sys_pkt_try_send(const char* data, uint32_t len)
 }
 
 int
-sys_pkt_recv(void *dstva)
+sys_pkt_recv(physaddr_t dstva)
 {
 	return syscall(SYS_pkt_recv, 1, (uint32_t)dstva, 0, 0, 0, 0);
 }

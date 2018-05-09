@@ -302,9 +302,8 @@ trap_dispatch(struct Trapframe *tf)
 	}
 
 	// Net interrupt
-	if(tf->tf_trapno == IRQ_OFFSET + 11) {
-		cprintf("net receive interrupt: do something!\n");
-		//net_intr();
+	if(tf->tf_trapno == IRQ_OFFSET + IRQ_NET) {
+		net_intr();
 		return;
 	}
 

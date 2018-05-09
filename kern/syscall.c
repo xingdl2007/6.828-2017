@@ -435,19 +435,22 @@ sys_pkt_try_send(void *data, uint32_t len)
 
 // destva's type of struct jif_pkt*.
 static int
-sys_pkt_recv(void *dstva)
+sys_pkt_recv(physaddr_t dstpa)
 {
-	if((uintptr_t)dstva < UTOP && (uintptr_t)dstva % PGSIZE != 0)
+	if((physaddr_t)dstpa < UTOP && (physaddr_t)dstpa % PGSIZE != 0)
 		return -E_INVAL;
 
 	// if e1000 has received pkts in host memory, retrive and return;
 	// else receive buffer is empty, block user env;
-	if(e1000_try_recv(dstva))
+	if(e1000_try_recv(dstpa)) {
+		cprintf("[%08x] sys_pkt_recv() succeed\n", curenv->env_id);
 		return 0;
+	}
 
+	cprintf("[%08x] blocking on sys_pkt_recv()\n", curenv->env_id);
 	// block
 	curenv->env_pkt_recving = true;
-	curenv->env_pkt_dstva = dstva;
+	curenv->env_pkt_dstpa = dstpa;
 	curenv->env_status = ENV_NOT_RUNNABLE;
 	sched_yield();
 }
@@ -494,6 +497,8 @@ syscall(uint32_t syscallno, uint32_t a1, uint32_t a2, uint32_t a3, uint32_t a4, 
 		return sys_time_msec();
 	case SYS_pkt_try_send:
 		return sys_pkt_try_send((char *)a1, a2);
+	case SYS_pkt_recv:
+		return sys_pkt_recv(a1);
 	default:
 		return -E_INVAL;
 	}

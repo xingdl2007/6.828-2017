@@ -68,6 +68,7 @@ volatile uint32_t *e1000;
 #define E1000_RCTL_RST   0x00000001    /* Software reset */
 #define E1000_RCTL_EN    0x00000002    /* enable */
 #define E1000_RCTL_SECRC 0x04000000    /* Strip Ethernet CRC */
+#define E1000_RCTL_BAM   0x00008000    /* broadcast enable */
 
 #define E1000_RD_STA_DD  0x1      /* Bit 0 */
 #define E1000_RD_STA_EOP 0x2      /* Bit 1 */
@@ -110,7 +111,7 @@ struct eth_frame{
 void e1000_tx_init();
 void e1000_rx_init();
 bool e1000_snd_pkt(const char *pkt, uint32_t len);
-bool e1000_try_recv(struct jif_pkt *pkt);
+bool e1000_try_recv(physaddr_t);
 void net_intr();
 
 #endif	// JOS_KERN_E1000_H

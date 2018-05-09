@@ -70,7 +70,7 @@ struct Env {
 
 	// LAB 6 NET
 	bool env_pkt_recving;           // Env is blocked receiving pkt
-	void *env_pkt_dstva;            // VA at which to map received pkt
+	physaddr_t env_pkt_dstpa;       // PA at which to map received pkt
 };
 
 #endif // !JOS_INC_ENV_H

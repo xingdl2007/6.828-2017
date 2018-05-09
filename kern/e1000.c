@@ -15,7 +15,7 @@ __attribute__((__aligned__(PGSIZE)))
 struct e1000_rx_desc rx_desc_ring[RXDESC_SIZE];
 
 // software head, not head used by hardware
-static uint32_t head = 0;
+static uint8_t head = 0;
 
 void
 e1000_tx_init()
@@ -100,7 +100,7 @@ e1000_rx_init()
 	// Interrupt to be generated whenever a new packet has been stored in
 	// memory
 	e1000[E1000_RDTR/4] = 0;
-	e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
+	//e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
 
 	// Ring buffer, must be physical address
 	e1000[E1000_RDBAL/4] = PADDR(rx_desc_ring);
@@ -109,46 +109,51 @@ e1000_rx_init()
 
 	// Make sure head/tail is 0
 	e1000[E1000_RDH/4] = 0;
-	e1000[E1000_RDT/4] = RXDESC_SIZE;
+	e1000[E1000_RDT/4] = RXDESC_SIZE - 1;
 
 	// Receive control register
 	// 1. disable long packet
 	// 2. 2048 buffer size, default
 	// 3. strip CRC
-	e1000[E1000_RCTL/4] = E1000_RCTL_EN | E1000_RCTL_SECRC;
+	e1000[E1000_RCTL/4] = E1000_RCTL_EN | E1000_RCTL_SECRC
+		| E1000_RCTL_BAM;
 }
 
 bool
-e1000_try_recv(struct jif_pkt *pkt)
+e1000_try_recv(physaddr_t destpa)
 {
-	uint32_t tail = e1000[E1000_RDT/4];
+	struct jif_pkt *pkt = (struct jif_pkt*)KADDR(destpa);
+	uint8_t tail = e1000[E1000_RDT/4];
 	assert(head < RXDESC_SIZE);
 	assert(tail < RXDESC_SIZE);
 
 	// Receive descriptor consumed, one per packet
 	if((rx_desc_ring[head].status & E1000_RD_STA_DD) &&
 	   (rx_desc_ring[head].status & E1000_RD_STA_EOP)) {
-		memcpy(pkt->jp_data,
-		       (void *)(uint32_t)rx_desc_ring[head].buffer_addr,
-			rx_desc_ring[head].length);
+		uintptr_t addr = rx_desc_ring[head].buffer_addr;
+		memcpy(pkt->jp_data, KADDR(addr),
+		       rx_desc_ring[head].length);
 		pkt->jp_len = rx_desc_ring[head].length;
 
 		// reset status
 		rx_desc_ring[head].status = 0;
 
 		// move head and tail
-		while(tail != head) {
+		while (tail != head) {
 			rx_desc_ring[tail].status = 0;
 			tail = (tail + 1) % RXDESC_SIZE;
 		}
 		head = (head + 1) % RXDESC_SIZE;
+		cprintf("[%08x] head: %d, tail: %d\n", curenv->env_id, head, tail);
+		e1000[E1000_RDT/4] = tail;
 
 		// disable receive interrupt
-		e1000[E1000_IMS/4]  = 0;
+		//e1000[E1000_IMC/4]  = E1000_IMS_RXT0;
+		cprintf("[%08x] got a packet\n", curenv->env_id);
 		return true;
 	}
 	// enable receive interrupt
-	e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
+	//e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
 	return false;
 }
 
@@ -160,12 +165,16 @@ void net_intr()
 	for (i = 0; i < NENV; i++) {
 		if(envs[i].env_status == ENV_NOT_RUNNABLE &&
 		   envs[i].env_pkt_recving) {
-			cprintf("Oops...\n");
-			e1000_try_recv(envs[i].env_pkt_dstva);
-			envs[i].env_pkt_recving = false;
-			envs[i].env_pkt_dstva = 0;
-			envs[i].env_tf.tf_regs.reg_eax = 0;
-			envs[i].env_status = ENV_RUNNABLE;
+			if(e1000_try_recv(envs[i].env_pkt_dstpa)) {
+				envs[i].env_pkt_recving = false;
+				envs[i].env_pkt_dstpa = 0;
+				envs[i].env_tf.tf_regs.reg_eax = 0;
+				envs[i].env_status = ENV_RUNNABLE;
+				cprintf("[%08x] net_intr: wake up blocking"
+					"env [%08x].\n"
+					, curenv->env_id, envs[i].env_id);
+
+			}
 		}
 	}
 }
