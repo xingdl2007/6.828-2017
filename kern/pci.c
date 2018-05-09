@@ -18,6 +18,7 @@ static uint32_t pci_conf1_data_ioport = 0x0cfc;
 static int pci_bridge_attach(struct pci_func *pcif);
 static int e1000_attach(struct pci_func *pcif);
 static void check_tx(void);
+static void check_rx(void);
 
 volatile uint32_t *e1000;
 
@@ -267,9 +268,6 @@ e1000_attach(struct pci_func *pcif)
 	// Transmit initialization
 	e1000_tx_init();
 
-	// Simple check, to pass grade script, have to comment
-	//check_tx();
-
 	// Receive initialization
 	e1000_rx_init();
 	return 0;
@@ -282,17 +280,4 @@ pci_init(void)
 	memset(&root_bus, 0, sizeof(root_bus));
 
 	return pci_scan_bus(&root_bus);
-}
-
-static void
-check_tx(void)
-{
-	char pkt[256];
-	int i, ret;
-	for(i = 0; i < sizeof(pkt); i++)
-		pkt[i] = i;
-	for(i = 0; i < 100; i++) {
-		ret = e1000_snd_pkt(pkt, sizeof(pkt));
-		assert(ret);
-	}
 }

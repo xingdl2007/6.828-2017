@@ -4,9 +4,13 @@
 
 // LAB 6: Your driver code here
 struct eth_frame tx_pkt_buffer[TXDESC_SIZE];
+struct eth_frame rx_pkt_buffer[RXDESC_SIZE];
 
 __attribute__((__aligned__(PGSIZE)))
 struct e1000_tx_desc tx_desc_ring[TXDESC_SIZE];
+
+__attribute__((__aligned__(PGSIZE)))
+struct e1000_rx_desc rx_desc_ring[RXDESC_SIZE];
 
 void
 e1000_tx_init()
@@ -19,7 +23,7 @@ e1000_tx_init()
 
 	// Ring buffer, must be physical address
 	e1000[E1000_TDBAL/4] = PADDR(tx_desc_ring);
-	e1000[E1000_TDBAH/4] = 0;                     // 32bit addr
+	e1000[E1000_TDBAH/4] = 0;      // 32bit addr
 	e1000[E1000_TDLEN/4] = TXDESC_SIZE * sizeof(struct e1000_tx_desc);
 
 	// Make sure head/tail is 0
@@ -69,5 +73,37 @@ e1000_snd_pkt(const char *pkt, uint32_t len)
 void
 e1000_rx_init()
 {
+	// Buffer addr initialization, set DD bit
+	for(int i = 0; i < RXDESC_SIZE; i++) {
+		rx_desc_ring[i].buffer_addr = PADDR(&rx_pkt_buffer[i]);
+		rx_desc_ring[i].status = 0;;
+	}
 
+	// Set Receive Address
+	// Set Qemu's default MAC address: 52:54:00:12:34:56
+	e1000[E1000_RAL(0)/4] = (0x52) | (0x54 << 8) | (0) | (0x12 << 24);
+	e1000[E1000_RAH(0)/4] = (0x34) | (0x56 << 8) | (1 << 31);
+
+	// Initialize the MTA (Multicast Table Array) to 0b
+	for(int i = 0; i < 128; i++) {
+		e1000[E1000_MTA(i)/4] = 0;
+	}
+
+	// Disable all interrutp
+	e1000[E1000_IMS/4] = 0;
+
+	// Ring buffer, must be physical address
+	e1000[E1000_RDBAL/4] = PADDR(rx_desc_ring);
+	e1000[E1000_RDBAH/4] = 0;      // 32bit addr
+	e1000[E1000_RDLEN/4] = RXDESC_SIZE * sizeof(struct e1000_tx_desc);
+
+	// Make sure head/tail is 0
+	e1000[E1000_RDH/4] = 0;
+	e1000[E1000_RDT/4] = RXDESC_SIZE;
+
+	// Receive control register
+	// 1. disable long packet
+	// 2. 2048 buffer size, default
+	// 3. strip CRC
+	e1000[E1000_RCTL/4] = E1000_RCTL_EN | E1000_RCTL_SECRC;
 }

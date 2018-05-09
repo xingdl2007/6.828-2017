@@ -5,7 +5,8 @@
 #include "inc/memlayout.h"
 
 #define TXDESC_SIZE  32    // tx descriptor ring size
-#define ETH_MAX_SIZE 1518  // max ethernet frame size
+#define RXDESC_SIZE  128   // rx descriptor ring size
+#define ETH_MAX_SIZE 2048  // > max ethernet frame size (1518)
 
 volatile uint32_t *e1000;
 
@@ -22,28 +23,47 @@ volatile uint32_t *e1000;
  * A - register array
  */
 
-#define E1000_CTRL       0x00000  /* Device Control - RW */
-#define E1000_STATUS     0x00008  /* Device Status - RO */
+#define E1000_CTRL      0x00000  /* Device Control - RW */
+#define E1000_STATUS    0x00008  /* Device Status - RO */
+#define E1000_IMS       0x000D0  /* Interrupt Mask Set - RW */
+#define E1000_IMC       0x000D8  /* Interrupt Mask Clear - WO */
+
+/* Receive Control Related */
+#define E1000_RCTL      0x00100  /* RX Control - RW */
+#define E1000_RDBAL     0x02800  /* RX Descriptor Base Address Low - RW */
+#define E1000_RDBAH     0x02804  /* RX Descriptor Base Address High - RW */
+#define E1000_RDLEN     0x02808  /* RX Descriptor Length - RW */
+#define E1000_RDH       0x02810  /* RX Descriptor Head - RW */
+#define E1000_RDT       0x02818  /* RX Descriptor Tail - RW */
+
+#define E1000_RAL(n)    (0x05400+8*n) /* Receive Address Low - RW Array */
+#define E1000_RAH(n)    (0x05408+8*n) /* Receive Address High- RW Array */
+#define E1000_MTA(n)    (0x05200+4*n) /* Multicast Table Array - RW Array */
 
 /* Transmit Control Related*/
-#define E1000_TCTL       0x00400  /* TX Control - RW */
-#define E1000_TIPG       0x00410  /* TX Inter-packet gap -RW */
-#define E1000_TDBAL      0x03800  /* TX Descriptor Base Address Low - RW */
-#define E1000_TDBAH      0x03804  /* TX Descriptor Base Address High - RW */
-#define E1000_TDLEN      0x03808  /* TX Descriptor Length - RW */
-#define E1000_TDH        0x03810  /* TX Descriptor Head - RW */
-#define E1000_TDT        0x03818  /* TX Descripotr Tail - RW */
+#define E1000_TCTL      0x00400  /* TX Control - RW */
+#define E1000_TIPG      0x00410  /* TX Inter-packet gap -RW */
+#define E1000_TDBAL     0x03800  /* TX Descriptor Base Address Low - RW */
+#define E1000_TDBAH     0x03804  /* TX Descriptor Base Address High - RW */
+#define E1000_TDLEN     0x03808  /* TX Descriptor Length - RW */
+#define E1000_TDH       0x03810  /* TX Descriptor Head - RW */
+#define E1000_TDT       0x03818  /* TX Descripotr Tail - RW */
 
 /* Transmit Control Register*/
-#define E1000_TCTL_EN    0x00000002    /* enable tx */
-#define E1000_TCTL_PSP   0x00000008    /* pad short packets */
-#define E1000_TCTL_CT    0x00000ff0    /* collision threshold */
-#define E1000_TCTL_COLD  0x003ff000    /* collision distance */
+#define E1000_TCTL_EN   0x00000002    /* enable tx */
+#define E1000_TCTL_PSP  0x00000008    /* pad short packets */
+#define E1000_TCTL_CT   0x00000ff0    /* collision threshold */
+#define E1000_TCTL_COLD 0x003ff000    /* collision distance */
 
 /* Transmit Descriptor Status bits*/
 #define E1000_TD_STA_DD  0x1      /* Bit 0 */
 #define E1000_TD_CMD_EOP 0x1      /* Bit 0 */
 #define E1000_TD_CMD_RS  0x8      /* Bit 3 */
+
+/* Receive Control */
+#define E1000_RCTL_RST   0x00000001    /* Software reset */
+#define E1000_RCTL_EN    0x00000002    /* enable */
+#define E1000_RCTL_SECRC 0x04000000    /* Strip Ethernet CRC */
 
 /* Transmit Descriptor */
 struct e1000_tx_desc {
