@@ -31,8 +31,7 @@ input(envid_t ns_envid)
 	while (1) {
 		// 1. call sys_pkt_recv
 		//sys_pkt_recv(addr);
-		while(sys_pkt_recv(addr) !=0)
-			sys_yield();
+		sys_pkt_recv(addr);
 		assert(nsipcbuf.pkt.jp_len != 0);
 
 		// 2. ipc_send to network core

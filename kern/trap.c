@@ -293,18 +293,20 @@ trap_dispatch(struct Trapframe *tf)
 	// LAB 5: Your code here.
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_KBD) {
 		kbd_intr();
+		irq_eoi();
 		return;
 	}
 
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_SERIAL) {
 		serial_intr();
+		irq_eoi();
 		return;
 	}
 
 	// Net interrupt
 	if(tf->tf_trapno == IRQ_OFFSET + IRQ_NET) {
-		//net_intr();
-		//lapic_eoi();
+		net_intr();
+		irq_eoi();
 		return;
 	}
 

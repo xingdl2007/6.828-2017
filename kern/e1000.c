@@ -100,14 +100,14 @@ e1000_rx_init()
 	// Interrupt to be generated whenever a new packet has been stored
 	// in memory
 	e1000[E1000_RDTR/4] = 0;
-	//e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
+	e1000[E1000_IMS/4]  = E1000_IMS_RXT0;
 
 	// Ring buffer, must be physical address
 	e1000[E1000_RDBAL/4] = PADDR(rx_desc_ring);
 	e1000[E1000_RDBAH/4] = 0;      // 32bit addr
 	e1000[E1000_RDLEN/4] = RXDESC_SIZE * sizeof(struct e1000_rx_desc);
 
-	// Make sure head/tail is 0
+	// Make sure head is 0
 	e1000[E1000_RDH/4] = 0;
 	e1000[E1000_RDT/4] = RXDESC_SIZE - 1;
 
@@ -115,7 +115,7 @@ e1000_rx_init()
 	// 1. disable long packet
 	// 2. 2048 buffer size, default
 	// 3. strip CRC
-	// 4. broadcast enabledPGNUM
+	// 4. broadcast enabled
 	e1000[E1000_RCTL/4] = E1000_RCTL_EN | E1000_RCTL_SECRC
 		| E1000_RCTL_BAM;
 }
@@ -127,7 +127,7 @@ e1000_try_recv(physaddr_t destpa)
 	uint8_t tail = e1000[E1000_RDT/4];
 	assert(head < RXDESC_SIZE);
 	assert(tail < RXDESC_SIZE);
-	bool interrupt = false;
+	static bool interrupt = false;
 
 	// Receive descriptor consumed, one per packet
 	if((rx_desc_ring[head].status & E1000_RD_STA_DD) &&
@@ -164,7 +164,9 @@ e1000_try_recv(physaddr_t destpa)
 // for recving
 void net_intr()
 {
-	cprintf("net_intr....\n");
+	// clear interrupt, read-clr
+	uint32_t icr = e1000[E1000_ICR/4];
+
 	// find if some env is blocking
 	int i;
 	for (i = 0; i < NENV; i++) {
@@ -175,13 +177,8 @@ void net_intr()
 				envs[i].env_pkt_dstpa = 0;
 				envs[i].env_tf.tf_regs.reg_eax = 0;
 				envs[i].env_status = ENV_RUNNABLE;
-
-				cprintf("net_intr: wake up blocking"
-					"env [%08x].\n", curenv->env_id,
-					envs[i].env_id);
+				break;
 			}
 		}
 	}
-	// clear interrupt
-	e1000[E1000_ICS/4];
 }

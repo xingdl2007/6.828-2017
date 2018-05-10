@@ -446,10 +446,8 @@ sys_pkt_recv(physaddr_t dstpa)
 		uint32_t *kaddr = KADDR(dstpa);
 		return 0;
 	}
-	return -1;
 
 	// block
-	cprintf("sleep on sys_pkt_recv()\n");
 	curenv->env_pkt_recving = true;
 	curenv->env_pkt_dstpa = dstpa;
 	curenv->env_status = ENV_NOT_RUNNABLE;

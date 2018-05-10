@@ -26,6 +26,7 @@ volatile uint32_t *e1000;
 
 #define E1000_CTRL      0x00000  /* Device Control - RW */
 #define E1000_STATUS    0x00008  /* Device Status - RO */
+#define E1000_ICR       0x000C0  /* Interrupt Cause Read - R/clr */
 #define E1000_ICS       0x000C8  /* Interrupt Cause Set - WO */
 #define E1000_IMS       0x000D0  /* Interrupt Mask Set - RW */
 #define E1000_IMC       0x000D8  /* Interrupt Mask Clear - WO */
