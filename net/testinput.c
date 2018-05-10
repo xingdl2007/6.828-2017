@@ -3,6 +3,7 @@
 
 static envid_t output_envid;
 static envid_t input_envid;
+static envid_t idle_envid;
 
 static struct jif_pkt *pkt = (struct jif_pkt*)REQVA;
 
@@ -86,6 +87,15 @@ umain(int argc, char **argv)
 	else if (input_envid == 0) {
 		input(ns_envid);
 		return;
+	}
+
+	idle_envid = fork();
+	if(idle_envid < 0)
+		panic("error forking");
+	else if (idle_envid == 0) {
+		while(1) {
+			sys_yield();
+		}
 	}
 
 	cprintf("Sending ARP announcement...\n");
